@@ -1,7 +1,8 @@
 var concat     = require('broccoli-sourcemap-concat');
 var Funnel     = require('broccoli-funnel');
 var mergeTrees = require('broccoli-merge-trees');
-var compileES6 = require('broccoli-es6modules');
+var compileES6Modules = require('broccoli-es6modules');
+var compileES6 = require('broccoli-babel-transpiler');
 var jshintTree = require('broccoli-jshint');
 var replace    = require('broccoli-string-replace');
 var gitVersion = require('git-repo-version');
@@ -88,7 +89,12 @@ packages.forEach(function(package) {
   });
 
   main[package.name] = mergeTrees([ lib[package.name] ]);
-  main[package.name] = concat(new compileES6(main[package.name]), {
+
+  main[package.name] = compileES6(main[package.name], {
+    modules: 'ignore'
+  });
+
+  main[package.name] = concat(new compileES6Modules(main[package.name]), {
     inputFiles: ['**/*.js'],
     outputFile: '/' + package.name + '.amd.js'
   });
@@ -121,8 +127,12 @@ var allGlobalized = mergeTrees(Object.keys(globalized).map(function(package) {
 var jshintLib = jshintTree(allLib);
 var jshintTest = jshintTree(tests);
 
+tests = compileES6(tests, {
+  modules: 'amd'
+});
+
 var mainWithTests = mergeTrees([allLib, tests, jshintLib, jshintTest]);
-mainWithTests = concat(new compileES6(mainWithTests), {
+mainWithTests = concat(new compileES6Modules(mainWithTests), {
   inputFiles: ['**/*.js'],
   outputFile: '/assets/tests.amd.js'
 });
